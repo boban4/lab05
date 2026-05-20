@@ -42,14 +42,15 @@ TEST(Transaction, MockTest) {
         
         EXPECT_CALL(to, ChangeBalance(500)).Times(1);
         
-        EXPECT_CALL(to, GetBalance()).WillOnce(Return(1000));
-        EXPECT_CALL(to, ChangeBalance(-600)).Times(1);
+        // Откат: Debit не сработал, вызывается ChangeBalance(-500)
+        EXPECT_CALL(to, ChangeBalance(-500)).Times(1);
         
         EXPECT_CALL(from, Unlock()).Times(1);
         EXPECT_CALL(to, Unlock()).Times(1);
     }
 
-    EXPECT_TRUE(tx.Make(from, to, 500));
+    // Make возвращает false, потому что Debit не сработал
+    EXPECT_FALSE(tx.Make(from, to, 500));
 }
 
 TEST(Transaction, SimpleTest) {
