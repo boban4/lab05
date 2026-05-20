@@ -1,3 +1,4 @@
+
 #include "Account.h"
 #include "Transaction.h"
 #include <gtest/gtest.h>
@@ -36,8 +37,12 @@ TEST(Transaction, MockTest) {
 
     EXPECT_CALL(from, Lock()).Times(1);
     EXPECT_CALL(to, Lock()).Times(1);
+    
     EXPECT_CALL(to, ChangeBalance(500)).Times(1);
-    EXPECT_CALL(to, ChangeBalance(-500)).Times(1);
+    
+    EXPECT_CALL(to, GetBalance()).WillOnce(Return(1000));
+    EXPECT_CALL(to, ChangeBalance(-600)).Times(1);
+    
     EXPECT_CALL(from, Unlock()).Times(1);
     EXPECT_CALL(to, Unlock()).Times(1);
 
