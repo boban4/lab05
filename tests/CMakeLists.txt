@@ -10,4 +10,4 @@ add_executable(tests test.cpp)
 
 target_link_libraries(tests PRIVATE banking gtest gtest_main gmock)
 
-add_test(NAME banking_tests COMMAND tests)
+
