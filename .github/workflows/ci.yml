@@ -1,35 +1,38 @@
-name: CI
+name: test
 
 on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [g++]
 
+    runs-on: ${{ matrix.os }}
+    
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install dependencies
-      run: sudo apt update && sudo apt install -y libgtest-dev libgmock-dev cmake lcov
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev libgmock-dev lcov g++
 
-    - name: Configure CMake
-      run: cmake -S . -B build
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build
 
-    - name: Build
-      run: cmake --build build
+      - name: Run Tests
+        run: ./build/tests/tests
+        
+      - name: Generate Coverage
+        run: |
+          lcov --capture --directory build --output-file coverage.info --rc lcov_branch_coverage=1 --ignore-errors mismatch,unused
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage_final.info --ignore-errors mismatch,unused
 
-    - name: Run tests
-      run: cd build && ctest --output-on-failure
-
-    - name: Generate coverage
-      run: |
-        cd build
-        lcov --capture --directory . --output-file coverage.info
-        lcov --remove coverage.info '/usr/*' '*/gtest/*' '*/gmock/*' --output-file coverage.info
-        lcov --list coverage.info
-
-    - name: Coveralls
-      uses: coverallsapp/github-action@v2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        file: build/coverage.info
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          file: coverage_final.info
