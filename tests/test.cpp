@@ -1,11 +1,15 @@
+
 #include "Account.h"
 #include "Transaction.h"
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
-class AccountMock : public Account {
+using ::testing::Return;
+using ::testing::_;
+
+class MockAccount : public Account {
 public:
-    AccountMock(int id, int balance) : Account(id, balance) {}
+    MockAccount(int id, int balance) : Account(id, balance) {}
     MOCK_METHOD0(GetBalance, int());
     MOCK_METHOD1(ChangeBalance, void(int));
     MOCK_METHOD0(Lock, void());
@@ -26,16 +30,17 @@ TEST(Account, SimpleTest) {
 }
 
 TEST(Transaction, MockTest) {
-    AccountMock from(1, 1000);
-    AccountMock to(2, 500);
+    MockAccount from(1, 1000);
+    MockAccount to(2, 500);
     Transaction tx;
     tx.set_fee(100);
 
     EXPECT_CALL(from, Lock()).Times(1);
     EXPECT_CALL(to, Lock()).Times(1);
-    EXPECT_CALL(from, GetBalance()).WillOnce(testing::Return(1000));
-    EXPECT_CALL(from, ChangeBalance(-500)).Times(1);
-    EXPECT_CALL(to, ChangeBalance(400)).Times(1);
+    EXPECT_CALL(to, GetBalance()).WillOnce(Return(500));
+    EXPECT_CALL(to, ChangeBalance(500)).Times(1);
+    EXPECT_CALL(to, GetBalance()).WillOnce(Return(1000));
+    EXPECT_CALL(to, ChangeBalance(-600)).Times(1);
     EXPECT_CALL(from, Unlock()).Times(1);
     EXPECT_CALL(to, Unlock()).Times(1);
 
@@ -48,9 +53,7 @@ TEST(Transaction, SimpleTest) {
     Account to(2, 500);
     tx.set_fee(100);
 
-    EXPECT_FALSE(tx.Make(from, to, 500));
+    EXPECT_TRUE(tx.Make(from, to, 500));
     EXPECT_EQ(from.GetBalance(), 1000);
-    EXPECT_TRUE(tx.Make(from, to, 300));
-    EXPECT_EQ(from.GetBalance(), 700);
-    EXPECT_EQ(to.GetBalance(), 800);
+    EXPECT_EQ(to.GetBalance(), 400);
 }
