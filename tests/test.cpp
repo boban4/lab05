@@ -26,8 +26,8 @@ TEST(Account, SimpleTest) {
 }
 
 TEST(Transaction, MockTest) {
-    MockAccount from(1, 1000);
-    MockAccount to(2, 500);
+    AccountMock from(1, 1000);
+    AccountMock to(2, 500);
     Transaction tx;
     tx.set_fee(100);
 
