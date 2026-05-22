@@ -1,49 +1,38 @@
-name: CI CMake
+name: CI
 
-on:
-  push:
-    branches: ["master"]
-  pull_request:
-    branches: ["master"]
+on: [push, pull_request]
 
 jobs:
-  build_and_test:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        compiler: [g++]
 
+    runs-on: ${{ matrix.os }}
+    
     steps:
-      - name: get
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: configure
-        run: cmake -S . -B build -DBUILD_TESTS=ON
-        working-directory: banking
-
-      - name: build
-        run: cmake --build build --config Debug
-        working-directory: banking
-
-      - name: run tests
-        run: ./build/tests
-        working-directory: banking
-
-      - name: generate coverage
-        working-directory: banking
+      - name: Install dependencies
         run: |
-          pip install gcovr
-          
-          gcovr \
-            --filter 'Account\.cpp$' \
-            --filter 'Transaction\.cpp$' \
-            --gcov-ignore-parse-errors \
-            --exclude-unreachable-branches \
-            --exclude-throw-branches \
-            --exclude-lines-by-pattern '.*assert.*' \
-            --lcov \
-            -o coverage.info \
-            .
-          
-      - name: upload to coveralls
+          sudo apt-get update
+          sudo apt-get install -y libgtest-dev libgmock-dev lcov g++
+
+      - name: Build
+        run: |
+          cmake -S . -B build -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS='--coverage'
+          cmake --build build
+
+      - name: Run Tests
+        run: ./build/tests/tests
+
+      - name: Generate Coverage
+        run: |
+          lcov --capture --directory build --output-file coverage.info --rc lcov_branch_coverage=1
+          lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage_final.info
+
+      - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: banking/coverage.info
+          file: coverage_final.info
